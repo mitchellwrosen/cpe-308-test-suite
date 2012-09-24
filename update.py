@@ -3,13 +3,21 @@ import shutil
 import subprocess
 import sys
 
-# Ensures this script is run in a directory with a markdown/ and a src/.
+# Ensures this script is run in a directory with a markdown/ and a src/,
+# and markdown is installed.
 def SanityCheck():
   _, dirnames, _ = os.walk('.').next()
   if 'markdown' not in dirnames or 'src' not in dirnames:
     print '%s must be run inside a directory with a markdown/ and a src/.' % (
         os.path.basename(__file__))
-    sys.exit(1)
+    return False
+
+  if subprocess.call(['which', 'markdown'], stdout=subprocess.PIPE,
+                     stderr=subprocess.PIPE):
+    print 'markdown not installed. Type: sudo apt-get install markdown'
+    return False
+
+  return True
 
 # Generates .html files from .md files in markdown/.
 def GenerateHtml():
@@ -19,18 +27,11 @@ def GenerateHtml():
         src = os.path.join(dirpath, filename)
         dst = src[:-2] + 'html'
 
-        try:
-          p = subprocess.Popen(['markdown', src], stdout=subprocess.PIPE)
-        except OSError, e:
-          print 'OSError: %s.' % e
-          print ('Did you forget to install markdown? sudo apt-get install '
-              'markdown')
-          sys.exit(1)
+        p = subprocess.Popen(['markdown', src], stdout=subprocess.PIPE)
 
-
-        print 'Generating %s from %s' % (dst, src)
         html, err = p.communicate()
         if err:
+          print 'markdown %s > %s' % (src, dst)
           print '  [ERROR]: %s' % err
           continue
 
@@ -49,14 +50,16 @@ def MoveHtml():
         # than one 'markdown/' in src.
         dst = 'src/' + src[9:]
 
-        print '%s -> %s' % (src, dst)
         try:
           shutil.move(src, dst)
         except Exception, e:
+          print '%s -> %s' % (src, dst)
           print '  %s. Did you forget to mkdir %s/?' % (e, dst[:dst.rfind('/')])
 
 def main():
-  SanityCheck()
+  if not SanityCheck():
+    return 1
+
   GenerateHtml()
   MoveHtml()
 
