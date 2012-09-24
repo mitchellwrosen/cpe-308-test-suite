@@ -19,8 +19,16 @@ def GenerateHtml():
         src = os.path.join(dirpath, filename)
         dst = src[:-2] + 'html'
 
+        try:
+          p = subprocess.Popen(['markdown', src], stdout=subprocess.PIPE)
+        except OSError, e:
+          print 'OSError: %s.' % e
+          print ('Did you forget to install markdown? sudo apt-get install '
+              'markdown')
+          sys.exit(1)
+
+
         print 'Generating %s from %s' % (dst, src)
-        p = subprocess.Popen(['markdown', src], stdout=subprocess.PIPE)
         html, err = p.communicate()
         if err:
           print '  [ERROR]: %s' % err
